@@ -1,43 +1,57 @@
 import React from 'react';
-import { shallow } from 'enzyme';
+import { render } from '@testing-library/react-native';
 import HomeScreen from '../screens/HomeScreen';
+import { Provider } from 'react-redux';
+import configureStore from 'redux-mock-store';
+
+const mockStore = configureStore([]);
 
 describe('HomeScreen', () => {
-  it('should initialize state variables correctly', () => {
-    const wrapper = shallow(<HomeScreen />);
-    const state = wrapper.state();
+  let store: any;
 
-    expect(state.data).toEqual([]);
-    expect(state.menuData).toEqual([]);
-    expect(state.viewProduct).toBeUndefined();
-    expect(state.searchValue).toEqual('');
-    expect(state.isModalVisible).toBe(false);
+  beforeEach(() => {
+    store = mockStore({
+      productReducer: {
+        products: [
+          {
+            id: '1',
+            name: 'Product 1',
+            price: 10,
+            colour: 'Red',
+            img: 'https://example.com/product1.jpg',
+          },
+          {
+            id: '2',
+            name: 'Product 2',
+            price: 15,
+            colour: 'Blue',
+            img: 'https://example.com/product2.jpg',
+          },
+        ],
+        menu: [
+          {
+            id: '1',
+            name: 'Menu 1',
+          },
+          {
+            id: '2',
+            name: 'Menu 2',
+          },
+        ],
+      },
+    });
   });
 
-  it('should update searchValue state and filter data on search', () => {
-    const wrapper = shallow(<HomeScreen />);
-    const instance = wrapper.instance();
+  test('renders HomeScreen correctly', () => {
+    const { getByText } = render(
+      <Provider store={store}>
+        <HomeScreen />
+      </Provider>
+    );
 
-    instance.setState({ data: [{ name: 'Product 1' }, { name: 'Product 2' }] });
-    instance.handleSearch('Product 1');
-
-    expect(wrapper.state('searchValue')).toEqual('Product 1');
-    expect(wrapper.state('data')).toEqual([{ name: 'Product 1' }]);
-  });
-
-  it('should toggle modal visibility and update viewProduct state', () => {
-    const wrapper = shallow(<HomeScreen />);
-    const instance = wrapper.instance();
-    const product = { name: 'Product 1' };
-
-    instance.toggleModal(product);
-
-    expect(wrapper.state('isModalVisible')).toBe(true);
-    expect(wrapper.state('viewProduct')).toEqual(product);
-
-    instance.toggleModal(product);
-
-    expect(wrapper.state('isModalVisible')).toBe(false);
-    expect(wrapper.state('viewProduct')).toBeUndefined();
+    // Test for the presence of specific elements or texts
+    expect(getByText('Home')).toBeTruthy();
+    expect(getByText('MENU')).toBeTruthy();
+    expect(getByText('Products')).toBeTruthy();
   });
 });

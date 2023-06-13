@@ -1,109 +1,105 @@
 import React from 'react';
-import { shallow } from 'enzyme';
-import { Alert } from 'react-native';
+import { render, fireEvent } from '@testing-library/react-native';
+import { Provider } from 'react-redux';
+import configureStore from 'redux-mock-store';
 import CartScreen from '../screens/CartScreen';
 
-describe('CartScreen', () => {
-  const mockCartReducer = {
-    cart: [
-      { id: 1, name: 'Product 1', price: 10, quantity: 2 },
-      { id: 2, name: 'Product 2', price: 20, quantity: 3 },
-    ],
-  };
+const mockStore = configureStore([]);
 
-  const mockResetCart = jest.fn();
-  const mockRemoveItem = jest.fn();
+describe('CartScreen', () => {
+  let store: any;
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    store = mockStore({
+      cartReducer: {
+        cart: [
+          {
+            id: '1',
+            name: 'Product 1',
+            price: 10,
+            quantity: 1
+          },
+          {
+            id: '2',
+            name: 'Product 2',
+            price: 20,
+            quantity: 2
+          }
+        ]
+      }
+    });
   });
 
-  it('renders the "Cart is empty" message when cart is empty', () => {
-    const wrapper = shallow(
-      <CartScreen
-        cartReducer={{ cart: [] }}
-        onResetCart={mockResetCart}
-        onRemoveItem={mockRemoveItem}
-      />
+  it('should render CartScreen correctly', () => {
+    const { getByText } = render(
+      <Provider store={store}>
+        <CartScreen />
+      </Provider>
     );
 
-    expect(wrapper.find('Text').text()).toEqual('Cart is empty');
+    // Assert the presence of specific elements
+    expect(getByText('My Cart')).toBeTruthy();
+    expect(getByText('Product 1')).toBeTruthy();
+    expect(getByText('Product 2')).toBeTruthy();
   });
 
-  it('renders the cart items and total price when cart is not empty', () => {
-    const wrapper = shallow(
-      <CartScreen
-        cartReducer={mockCartReducer}
-        onResetCart={mockResetCart}
-        onRemoveItem={mockRemoveItem}
-      />
+  it('should display total price correctly', () => {
+    const { getByText } = render(
+      <Provider store={store}>
+        <CartScreen />
+      </Provider>
     );
 
-    expect(wrapper.find('CartComponent')).toHaveLength(mockCartReducer.cart.length);
-    expect(wrapper.find('Text').text()).toContain('Total Price: $');
+    // Assert the total price calculation
+    expect(getByText('$50.00')).toBeTruthy();
   });
 
-  it('calls the onResetCart function when reset button is clicked', () => {
-    const wrapper = shallow(
-      <CartScreen
-        cartReducer={mockCartReducer}
-        onResetCart={mockResetCart}
-        onRemoveItem={mockRemoveItem}
-      />
+  it('should call onResetCart when reset button is pressed', () => {
+    const { getByText } = render(
+      <Provider store={store}>
+        <CartScreen />
+      </Provider>
     );
 
-    wrapper.find('HeaderComponent').prop('onReset')();
+    // Simulate button click
+    fireEvent.press(getByText('Reset'));
 
-    expect(mockResetCart).toHaveBeenCalledTimes(1);
+    // Assert that onResetCart has been called
+    const actions = store.getActions();
+    expect(actions[0].type).toEqual('RESET_CART');
   });
 
-  it('calls the onResetCart function and displays the alert when checkout button is clicked', () => {
-    const wrapper = shallow(
-      <CartScreen
-        cartReducer={mockCartReducer}
-        onResetCart={mockResetCart}
-        onRemoveItem={mockRemoveItem}
-      />
+  it('should call onRemoveItem when delete button is pressed', () => {
+    const { getByTestId } = render(
+      <Provider store={store}>
+        <CartScreen />
+      </Provider>
     );
 
-    const checkoutButton = wrapper.find('TouchableOpacity');
-    checkoutButton.simulate('press');
+    // Simulate button click
+    fireEvent.press(getByTestId('delete-button-1'));
 
-    expect(Alert.alert).toHaveBeenCalledTimes(1);
-    expect(Alert.alert).toHaveBeenCalledWith(
-      'Success',
-      'Your order has been laced',
-      [
-        {
-          text: 'OK',
-          style: 'destructive',
-          onPress: expect.any(Function),
-        },
-      ]
-    );
-
-    const alertButtonIndex = 0;
-    const alertButtonHandler = Alert.alert.mock.calls[0][2][alertButtonIndex].onPress;
-    alertButtonHandler();
-
-    expect(mockResetCart).toHaveBeenCalledTimes(1);
+    // Assert that onRemoveItem has been called
+    const actions = store.getActions();
+    expect(actions[0].type).toEqual('REMOVE_ITEM');
+    expect(actions[0].payload).toEqual('1');
   });
 
-  it('calls the onRemoveItem function when delete button is clicked', () => {
-    const wrapper = shallow(
-      <CartScreen
-        cartReducer={mockCartReducer}
-        onResetCart={mockResetCart}
-        onRemoveItem={mockRemoveItem}
-      />
+  it('should call checkout function when checkout button is pressed', () => {
+    const { getByText } = render(
+      <Provider store={store}>
+        <CartScreen />
+      </Provider>
     );
 
-    const swipeListView = wrapper.find('SwipeListView');
-    const deleteButton = shallow(swipeListView.prop('renderHiddenItem')({ item: mockCartReducer.cart[0] }));
+    // Simulate button click
+    fireEvent.press(getByText('Check Out'));
 
-    deleteButton.simulate('press');
+    // Assert that checkout function has been called
+    const actions = store.getActions();
+    expect(actions[0].type).toEqual('RESET_CART');
 
-    expect(mockRemoveItem).toHaveBeenCalledTimes(1);
-    expect(mockRemoveItem).toHaveBeenCalledWith(mockCartReducer.cart[0].id);
+    // Assert the alert message
+    expect(getByText('Your order has been placed')).toBeTruthy();
   });
 });

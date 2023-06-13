@@ -24,8 +24,6 @@ import { SwipeListView } from 'react-native-swipe-list-view';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import { scale } from '../utils/scale';
 
-const TAX_RATE = 18 / 100;
-
 interface CartProps {
   cartReducer: CartState;
   onAddItem: Function;
